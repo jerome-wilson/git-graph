@@ -1,0 +1,561 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import '../models/contribution.dart';
+import '../services/github_service.dart';
+import '../services/widget_service.dart';
+import '../widgets/contribution_graph.dart';
+
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final _usernameController = TextEditingController();
+  final _tokenController = TextEditingController();
+  
+  bool _isLoading = false;
+  bool _isConfigured = false;
+  bool _obscureToken = true;
+  String? _errorMessage;
+  ContributionData? _contributionData;
+  String? _currentUsername;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedData();
+  }
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _tokenController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadSavedData() async {
+    setState(() => _isLoading = true);
+    
+    try {
+      final hasCredentials = await GitHubService.hasCredentials();
+      if (hasCredentials) {
+        final username = await GitHubService.getUsername();
+        _currentUsername = username;
+        _usernameController.text = username ?? '';
+        
+        // Try to load cached data first
+        final cachedData = await GitHubService.getCachedData();
+        if (cachedData != null) {
+          setState(() {
+            _contributionData = cachedData;
+            _isConfigured = true;
+          });
+        }
+        
+        // Then fetch fresh data
+        await _fetchContributions();
+      }
+    } catch (e) {
+      setState(() => _errorMessage = e.toString());
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _fetchContributions() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final data = await GitHubService.fetchContributions();
+      setState(() {
+        _contributionData = data;
+        _isConfigured = true;
+      });
+      
+      // Update the widget
+      await WidgetService.updateWidget();
+    } catch (e) {
+      setState(() => _errorMessage = e.toString());
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _saveCredentials() async {
+    final username = _usernameController.text.trim();
+    final token = _tokenController.text.trim();
+
+    if (username.isEmpty || token.isEmpty) {
+      setState(() => _errorMessage = 'Please enter both username and token');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      // Validate credentials
+      final isValid = await GitHubService.validateCredentials(username, token);
+      if (!isValid) {
+        setState(() => _errorMessage = 'Invalid credentials. Please check your username and token.');
+        return;
+      }
+
+      // Save credentials
+      await GitHubService.saveCredentials(username, token);
+      _currentUsername = username;
+      _tokenController.clear();
+
+      // Fetch contributions
+      await _fetchContributions();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Credentials saved successfully!'),
+            backgroundColor: Color(0xFF238636),
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() => _errorMessage = e.toString());
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _logout() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF161b22),
+        title: const Text('Logout', style: TextStyle(color: Colors.white)),
+        content: const Text(
+          'Are you sure you want to logout? This will clear your saved credentials.',
+          style: TextStyle(color: Color(0xFF8b949e)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await GitHubService.clearCredentials();
+      setState(() {
+        _isConfigured = false;
+        _contributionData = null;
+        _currentUsername = null;
+        _usernameController.clear();
+        _tokenController.clear();
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'GitHub Contributions',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        actions: [
+          if (_isConfigured)
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: _isLoading ? null : _fetchContributions,
+              tooltip: 'Refresh',
+            ),
+          if (_isConfigured)
+            IconButton(
+              icon: const Icon(Icons.logout),
+              onPressed: _logout,
+              tooltip: 'Logout',
+            ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (!_isConfigured) ...[
+              _buildSetupCard(),
+            ] else ...[
+              _buildUserCard(),
+              const SizedBox(height: 16),
+              _buildContributionCard(),
+              const SizedBox(height: 16),
+              _buildWidgetInstructions(),
+            ],
+            if (_errorMessage != null) ...[
+              const SizedBox(height: 16),
+              _buildErrorCard(),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSetupCard() {
+    return Card(
+      color: const Color(0xFF161b22),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: const BorderSide(color: Color(0xFF30363d)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.settings, color: Color(0xFF8b949e)),
+                SizedBox(width: 8),
+                Text(
+                  'Setup',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Enter your GitHub credentials to fetch your contribution data.',
+              style: TextStyle(color: Color(0xFF8b949e)),
+            ),
+            const SizedBox(height: 20),
+            TextField(
+              controller: _usernameController,
+              decoration: const InputDecoration(
+                labelText: 'GitHub Username',
+                labelStyle: TextStyle(color: Color(0xFF8b949e)),
+                prefixIcon: Icon(Icons.person, color: Color(0xFF8b949e)),
+              ),
+              style: const TextStyle(color: Colors.white),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _tokenController,
+              obscureText: _obscureToken,
+              decoration: InputDecoration(
+                labelText: 'Personal Access Token',
+                labelStyle: const TextStyle(color: Color(0xFF8b949e)),
+                prefixIcon: const Icon(Icons.key, color: Color(0xFF8b949e)),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscureToken ? Icons.visibility : Icons.visibility_off,
+                    color: const Color(0xFF8b949e),
+                  ),
+                  onPressed: () => setState(() => _obscureToken = !_obscureToken),
+                ),
+              ),
+              style: const TextStyle(color: Colors.white),
+            ),
+            const SizedBox(height: 12),
+            _buildTokenHelp(),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _isLoading ? null : _saveCredentials,
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Save & Fetch Contributions'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTokenHelp() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0d1117),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: const Color(0xFF30363d)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'How to create a Personal Access Token:',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            '1. Go to GitHub Settings → Developer settings\n'
+            '2. Click "Personal access tokens" → "Tokens (classic)"\n'
+            '3. Generate new token with "read:user" scope\n'
+            '4. Copy and paste the token here',
+            style: TextStyle(color: Color(0xFF8b949e), fontSize: 12),
+          ),
+          const SizedBox(height: 8),
+          GestureDetector(
+            onTap: () {
+              Clipboard.setData(const ClipboardData(
+                text: 'https://github.com/settings/tokens/new',
+              ));
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('URL copied to clipboard!')),
+              );
+            },
+            child: const Text(
+              'https://github.com/settings/tokens/new',
+              style: TextStyle(
+                color: Color(0xFF58a6ff),
+                fontSize: 12,
+                decoration: TextDecoration.underline,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUserCard() {
+    return Card(
+      color: const Color(0xFF161b22),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: const BorderSide(color: Color(0xFF30363d)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: const Color(0xFF238636),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: const Icon(Icons.person, color: Colors.white),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _currentUsername ?? 'Unknown',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  if (_contributionData != null)
+                    Text(
+                      '${_contributionData!.totalContributions} contributions in the last year',
+                      style: const TextStyle(color: Color(0xFF8b949e)),
+                    ),
+                ],
+              ),
+            ),
+            if (_isLoading)
+              const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContributionCard() {
+    return Card(
+      color: const Color(0xFF161b22),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: const BorderSide(color: Color(0xFF30363d)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.grid_view, color: Color(0xFF8b949e)),
+                SizedBox(width: 8),
+                Text(
+                  'Contribution Graph',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ContributionGraph(
+              data: _contributionData,
+              weeksToShow: 52,
+              cellSize: 10,
+              cellSpacing: 3,
+              borderRadius: 2,
+            ),
+            if (_contributionData != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                'Last updated: ${_formatDateTime(_contributionData!.fetchedAt)}',
+                style: const TextStyle(
+                  color: Color(0xFF8b949e),
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWidgetInstructions() {
+    return Card(
+      color: const Color(0xFF161b22),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: const BorderSide(color: Color(0xFF30363d)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.widgets, color: Color(0xFF8b949e)),
+                SizedBox(width: 8),
+                Text(
+                  'Add Home Screen Widget',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'To add the contribution graph to your home screen:',
+              style: TextStyle(color: Color(0xFF8b949e)),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              '1. Long press on your home screen\n'
+              '2. Tap "Widgets"\n'
+              '3. Find "GitHub Contributions"\n'
+              '4. Drag the widget to your home screen',
+              style: TextStyle(color: Color(0xFF8b949e), fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _isLoading ? null : () async {
+                  await WidgetService.updateWidget();
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Widget updated!')),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.refresh),
+                label: const Text('Update Widget Now'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF58a6ff),
+                  side: const BorderSide(color: Color(0xFF30363d)),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorCard() {
+    return Card(
+      color: const Color(0xFF490202),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: const BorderSide(color: Color(0xFFf85149)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Color(0xFFf85149)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                _errorMessage ?? 'An error occurred',
+                style: const TextStyle(color: Color(0xFFf85149)),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close, color: Color(0xFFf85149)),
+              onPressed: () => setState(() => _errorMessage = null),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatDateTime(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inMinutes < 1) {
+      return 'Just now';
+    } else if (difference.inHours < 1) {
+      return '${difference.inMinutes} minutes ago';
+    } else if (difference.inDays < 1) {
+      return '${difference.inHours} hours ago';
+    } else {
+      return '${difference.inDays} days ago';
+    }
+  }
+}
