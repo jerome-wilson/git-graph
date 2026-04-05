@@ -131,13 +131,38 @@ class GitHubContributionsWidget : AppWidgetProvider() {
                     val weekArray = weeksArray.getJSONArray(i)
                     val weekLayout = RemoteViews(context.packageName, R.layout.widget_week_column)
                     
-                    for (j in 0 until minOf(weekArray.length(), 7)) {
-                        val level = weekArray.getInt(j)
-                        val color = LEVEL_COLORS[level.coerceIn(0, 4)]
+                    val daysInWeek = weekArray.length()
+                    
+                    // For incomplete weeks (like the current week), we need to determine
+                    // where to place the cells. GitHub API returns days starting from Sunday.
+                    // If a week has fewer than 7 days, it could be:
+                    // - First week of the year (starts mid-week)
+                    // - Current week (ends mid-week)
+                    
+                    // For the LAST week (current week), days should be at the TOP
+                    // because they represent the beginning of the week (Sunday onwards)
+                    // For the FIRST week, days might start mid-week
+                    
+                    // Always add 7 cells per column for consistent layout
+                    // Fill with actual data where available, empty cells otherwise
+                    for (j in 0 until 7) {
+                        val level = if (j < daysInWeek) {
+                            weekArray.getInt(j)
+                        } else {
+                            -1 // Placeholder for days that don't exist yet (future days in current week)
+                        }
                         
-                        // Use the appropriate cell layout based on widget height
                         val cellView = RemoteViews(context.packageName, cellLayoutId)
-                        cellView.setInt(R.id.cell_view, "setBackgroundColor", color)
+                        
+                        if (level >= 0) {
+                            // Actual contribution day
+                            val color = LEVEL_COLORS[level.coerceIn(0, 4)]
+                            cellView.setInt(R.id.cell_view, "setBackgroundColor", color)
+                        } else {
+                            // Future day - make it transparent/invisible
+                            cellView.setInt(R.id.cell_view, "setBackgroundColor", Color.TRANSPARENT)
+                        }
+                        
                         weekLayout.addView(R.id.week_column, cellView)
                     }
                     
