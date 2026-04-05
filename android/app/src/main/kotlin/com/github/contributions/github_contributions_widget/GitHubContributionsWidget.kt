@@ -30,6 +30,12 @@ class GitHubContributionsWidget : AppWidgetProvider() {
             Color.parseColor("#26a641"), // Level 3 - Light green
             Color.parseColor("#39d353")  // Level 4 - Bright green
         )
+        
+        // Cell size configurations: (cellLayoutId, cellSizeWithMargin, minHeight)
+        // Small: 5dp cell + 1dp margin = 6dp per cell, 7 rows = 42dp min
+        // Medium: 8dp cell + 2dp margin = 10dp per cell, 7 rows = 70dp min
+        // Large: 12dp cell + 3dp margin = 15dp per cell, 7 rows = 105dp min
+        private data class CellConfig(val layoutId: Int, val cellSize: Int, val minHeight: Int)
     }
 
     override fun onUpdate(
@@ -76,17 +82,23 @@ class GitHubContributionsWidget : AppWidgetProvider() {
         )
         views.setOnClickPendingIntent(R.id.widget_container, pendingIntent)
         
-        // Get widget dimensions to calculate how many weeks to show
+        // Get widget dimensions
         val minWidth = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 200)
         val minHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 100)
         
-        // Calculate weeks based on width (each cell is 5dp + 1dp margin = 6dp)
-        // Now with tighter horizontal spacing (no extra margin between columns)
-        val cellSize = 6 // dp per cell including margin
-        val padding = 20 // padding to prevent cut-off
-        val weeksToShow = ((minWidth - padding) / cellSize).coerceIn(5, 52)
+        // Select cell size based on widget height
+        // Height thresholds: small (<70dp), medium (70-100dp), large (>100dp)
+        val (cellLayoutId, cellSizeWithMargin) = when {
+            minHeight >= 100 -> Pair(R.layout.widget_cell_large, 15)   // 12dp + 3dp margin
+            minHeight >= 70 -> Pair(R.layout.widget_cell_medium, 10)   // 8dp + 2dp margin
+            else -> Pair(R.layout.widget_cell_small, 6)                // 5dp + 1dp margin
+        }
         
-        Log.d(TAG, "Widget size: ${minWidth}x${minHeight}, showing $weeksToShow weeks")
+        // Calculate weeks based on width and cell size
+        val padding = 20 // padding to ensure no cut-off
+        val weeksToShow = ((minWidth - padding) / cellSizeWithMargin).coerceIn(3, 52)
+        
+        Log.d(TAG, "Widget size: ${minWidth}x${minHeight}, cellSize: $cellSizeWithMargin, showing $weeksToShow weeks")
         
         // Load contribution data
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -107,13 +119,13 @@ class GitHubContributionsWidget : AppWidgetProvider() {
                 
                 Log.d(TAG, "Total weeks in data: ${weeksArray.length()}")
                 
-                // Show as many weeks as will fit, with most recent on the RIGHT
+                // Show as many weeks as will fit, with most recent on the RIGHT (GitHub style)
                 val actualWeeks = minOf(weeksToShow, weeksArray.length())
                 val startIndex = maxOf(0, weeksArray.length() - actualWeeks)
                 
                 Log.d(TAG, "Showing weeks from index $startIndex to ${weeksArray.length() - 1}")
                 
-                // Iterate from oldest to newest (left to right)
+                // Iterate from oldest to newest (left to right) - GitHub style
                 // So the rightmost column is the most recent week
                 for (i in startIndex until weeksArray.length()) {
                     val weekArray = weeksArray.getJSONArray(i)
@@ -123,7 +135,8 @@ class GitHubContributionsWidget : AppWidgetProvider() {
                         val level = weekArray.getInt(j)
                         val color = LEVEL_COLORS[level.coerceIn(0, 4)]
                         
-                        val cellView = RemoteViews(context.packageName, R.layout.widget_cell)
+                        // Use the appropriate cell layout based on widget height
+                        val cellView = RemoteViews(context.packageName, cellLayoutId)
                         cellView.setInt(R.id.cell_view, "setBackgroundColor", color)
                         weekLayout.addView(R.id.week_column, cellView)
                     }
