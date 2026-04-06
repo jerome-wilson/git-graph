@@ -4,7 +4,7 @@ import '../models/contribution.dart';
 /// GitHub contribution colors (dark theme)
 class GitHubColors {
   static const Color background = Color(0xFF161b22);
-  static const Color level0 = Color(0xFF161b22); // No contributions
+  static const Color level0 = Color(0xFF21262d); // No contributions (visible gray)
   static const Color level1 = Color(0xFF0e4429); // First quartile
   static const Color level2 = Color(0xFF006d32); // Second quartile
   static const Color level3 = Color(0xFF26a641); // Third quartile
@@ -208,9 +208,11 @@ class ContributionGraph extends StatelessWidget {
 
   Widget _buildWeekColumn(ContributionWeek week) {
     // Ensure we have 7 days, padding with empty cells if needed
+    // GitHub layout: Sunday at top (index 0), Saturday at bottom (index 6)
     final days = List<ContributionDay?>.filled(7, null);
     for (final day in week.days) {
-      final weekday = day.date.weekday - 1; // 0 = Monday, 6 = Sunday
+      // Convert weekday: Sunday=0, Monday=1, ..., Saturday=6
+      final weekday = day.date.weekday % 7; // Sunday=7%7=0, Monday=1, ..., Saturday=6
       if (weekday >= 0 && weekday < 7) {
         days[weekday] = day;
       }
@@ -226,15 +228,34 @@ class ContributionGraph extends StatelessWidget {
   }
 
   Widget _buildCell(ContributionDay? day) {
-    final level = day?.contributionLevel ?? 0;
+    // Don't show future days - make them transparent/invisible
+    if (day == null) {
+      return Padding(
+        padding: EdgeInsets.only(bottom: cellSpacing),
+        child: SizedBox(width: cellSize, height: cellSize),
+      );
+    }
+    
+    // Check if this day is in the future
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final dayDate = DateTime(day.date.year, day.date.month, day.date.day);
+    
+    if (dayDate.isAfter(today)) {
+      // Future day - show empty/transparent
+      return Padding(
+        padding: EdgeInsets.only(bottom: cellSpacing),
+        child: SizedBox(width: cellSize, height: cellSize),
+      );
+    }
+    
+    final level = day.contributionLevel;
     final color = GitHubColors.getColorForLevel(level);
 
     return Padding(
       padding: EdgeInsets.only(bottom: cellSpacing),
       child: Tooltip(
-        message: day != null
-            ? '${day.contributionCount} contributions on ${_formatDate(day.date)}'
-            : 'No data',
+        message: '${day.contributionCount} contributions on ${_formatDate(day.date)}',
         child: Container(
           width: cellSize,
           height: cellSize,
@@ -338,10 +359,13 @@ class CompactContributionGraph extends StatelessWidget {
   }
 
   Widget _buildWeekColumn(List<int> levels) {
-    // Ensure we have 7 days
+    // Ensure we have 7 days - GitHub layout: Sunday at top, Saturday at bottom
     final paddedLevels = List<int>.filled(7, 0);
     for (int i = 0; i < levels.length && i < 7; i++) {
-      paddedLevels[i] = levels[i];
+      // Reorder: input is Mon-Sun (0-6), output should be Sun-Sat (0-6)
+      // So we shift: Sunday (index 6 in input) goes to index 0
+      final newIndex = (i + 1) % 7; // Mon(0)->1, Tue(1)->2, ..., Sat(5)->6, Sun(6)->0
+      paddedLevels[newIndex] = levels[i];
     }
 
     return Padding(

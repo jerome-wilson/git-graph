@@ -22,6 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _errorMessage;
   ContributionData? _contributionData;
   String? _currentUsername;
+  String? _avatarUrl;
 
   @override
   void initState() {
@@ -43,7 +44,9 @@ class _HomeScreenState extends State<HomeScreen> {
       final hasCredentials = await GitHubService.hasCredentials();
       if (hasCredentials) {
         final username = await GitHubService.getUsername();
+        final avatarUrl = await GitHubService.getAvatarUrl();
         _currentUsername = username;
+        _avatarUrl = avatarUrl;
         _usernameController.text = username ?? '';
         
         // Try to load cached data first
@@ -73,8 +76,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       final data = await GitHubService.fetchContributions();
+      final avatarUrl = await GitHubService.getAvatarUrl();
       setState(() {
         _contributionData = data;
+        _avatarUrl = avatarUrl;
         _isConfigured = true;
       });
       
@@ -162,6 +167,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _isConfigured = false;
         _contributionData = null;
         _currentUsername = null;
+        _avatarUrl = null;
         _usernameController.clear();
         _tokenController.clear();
       });
@@ -358,15 +364,22 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: const Color(0xFF238636),
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: const Icon(Icons.person, color: Colors.white),
-            ),
+            _avatarUrl != null
+                ? CircleAvatar(
+                    radius: 24,
+                    backgroundImage: NetworkImage(_avatarUrl!),
+                    backgroundColor: const Color(0xFF238636),
+                    onBackgroundImageError: (_, __) {},
+                  )
+                : Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF238636),
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: const Icon(Icons.person, color: Colors.white),
+                  ),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
