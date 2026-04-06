@@ -8,11 +8,13 @@ class GitHubService {
   static const String _usernameKey = 'github_username';
   static const String _tokenKey = 'github_token';
   static const String _cachedDataKey = 'cached_contribution_data';
+  static const String _avatarUrlKey = 'github_avatar_url';
 
-  /// GraphQL query to fetch contribution data
+  /// GraphQL query to fetch contribution data and avatar
   static String _getContributionQuery(String username) => '''
     query {
       user(login: "$username") {
+        avatarUrl
         contributionsCollection {
           contributionCalendar {
             totalContributions
@@ -61,6 +63,19 @@ class GitHubService {
     await prefs.remove(_usernameKey);
     await prefs.remove(_tokenKey);
     await prefs.remove(_cachedDataKey);
+    await prefs.remove(_avatarUrlKey);
+  }
+
+  /// Get saved avatar URL
+  static Future<String?> getAvatarUrl() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_avatarUrlKey);
+  }
+
+  /// Save avatar URL
+  static Future<void> _saveAvatarUrl(String url) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_avatarUrlKey, url);
   }
 
   /// Fetch contribution data from GitHub API
@@ -108,6 +123,12 @@ class GitHubService {
       final user = data['data']?['user'];
       if (user == null) {
         throw Exception('User not found: $effectiveUsername');
+      }
+
+      // Save avatar URL
+      final avatarUrl = user['avatarUrl'] as String?;
+      if (avatarUrl != null) {
+        await _saveAvatarUrl(avatarUrl);
       }
 
       final calendar = user['contributionsCollection']['contributionCalendar'];
