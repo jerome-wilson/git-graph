@@ -1,6 +1,11 @@
 # Releases (APKs should be uploaded to GitHub Releases, not committed)
 /releases/
 
+# Design assets (not needed in repo)
+Frame*.png
+GitHub-silhoutte.png
+github-contribution-icon.png
+
 # Miscellaneous
 *.class
 *.log
