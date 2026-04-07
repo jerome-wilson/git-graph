@@ -179,7 +179,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'GitHub Contributions',
+          'GitGraph',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         actions: [
@@ -498,7 +498,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const Text(
               '1. Long press on your home screen\n'
               '2. Tap "Widgets"\n'
-              '3. Find "GitHub Contributions"\n'
+              '3. Find "GitGraph"\n'
               '4. Drag the widget to your home screen',
               style: TextStyle(color: Color(0xFF8b949e), fontSize: 13),
             ),
