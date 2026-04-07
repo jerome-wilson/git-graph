@@ -1,4 +1,4 @@
-# GitHub Contributions Widget
+# GitGraph
 
 A beautiful Android home screen widget that displays your GitHub contribution graph, just like on your GitHub profile.
 
@@ -33,8 +33,8 @@ A beautiful Android home screen widget that displays your GitHub contribution gr
 
 ```bash
 # Clone the repository
-git clone https://github.com/YOUR_USERNAME/github-contributions-widget.git
-cd github-contributions-widget
+git clone https://github.com/jerome-wilson/git-graph.git
+cd git-graph
 
 # Install Flutter dependencies
 flutter pub get
@@ -58,7 +58,7 @@ flutter build apk --release
 
 ### 2. Configure the App
 
-1. Open the GitHub Contributions app
+1. Open the GitGraph app
 2. Enter your GitHub username
 3. Paste your Personal Access Token
 4. Tap "Save & Fetch Contributions"
@@ -67,7 +67,7 @@ flutter build apk --release
 
 1. Long press on your home screen
 2. Tap "Widgets"
-3. Find "GitHub Contributions"
+3. Find "GitGraph"
 4. Drag the widget to your home screen
 5. Resize as needed
 
