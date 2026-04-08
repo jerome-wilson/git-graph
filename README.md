@@ -2,7 +2,7 @@
 
 A beautiful Android home screen widget that displays your GitHub contribution graph, just like on your GitHub profile.
 
-![Widget Preview](screenshots/widget_preview.png)
+![Widget Preview](screenshots/widget_on_home_screen.jpeg)
 
 ## Features
 
@@ -14,9 +14,9 @@ A beautiful Android home screen widget that displays your GitHub contribution gr
 
 ## Screenshots
 
-| App Setup | Widget on Home Screen |
-|-----------|----------------------|
-| ![Setup](screenshots/app_setup.png) | ![Widget](screenshots/widget.png) |
+| App Setup | Widget on Home Screen | Adding Widget |
+|-----------|----------------------|---------------|
+| ![Setup](screenshots/app_setup.jpeg) | ![Widget](screenshots/widget_on_home_screen.jpeg) | ![Adding Widget](screenshots/gitgraph-widget-drag.jpeg) |
 
 ## Installation
 
