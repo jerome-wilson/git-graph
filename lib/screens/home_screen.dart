@@ -286,7 +286,10 @@ class _HomeScreenState extends State<HomeScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _isLoading ? null : _saveCredentials,
+                onPressed: _isLoading ? null : () {
+                  HapticFeedback.mediumImpact();
+                  _saveCredentials();
+                },
                 child: _isLoading
                     ? const SizedBox(
                         height: 20,
@@ -332,6 +335,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 8),
           GestureDetector(
             onTap: () {
+              HapticFeedback.lightImpact();
               Clipboard.setData(const ClipboardData(
                 text: 'https://github.com/settings/tokens/new',
               ));
@@ -507,6 +511,7 @@ class _HomeScreenState extends State<HomeScreen> {
               width: double.infinity,
               child: OutlinedButton.icon(
                 onPressed: _isLoading ? null : () async {
+                  HapticFeedback.lightImpact();
                   await WidgetService.updateWidget();
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(

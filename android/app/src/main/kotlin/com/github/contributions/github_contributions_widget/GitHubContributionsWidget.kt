@@ -7,6 +7,10 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.util.Log
 import android.widget.RemoteViews
 import org.json.JSONObject
@@ -16,11 +20,33 @@ class GitHubContributionsWidget : AppWidgetProvider() {
     companion object {
         private const val TAG = "GitHubWidget"
         private const val PREFS_NAME = "FlutterSharedPreferences"
+        private const val ACTION_WIDGET_TAP = "com.github.contributions.WIDGET_TAP"
         
         private val WIDGET_DATA_KEYS = arrayOf(
             "flutter.widget_contribution_data",
             "widget_contribution_data"
         )
+        
+        fun performHapticFeedback(context: Context) {
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+                    val vibrator = vibratorManager.defaultVibrator
+                    vibrator.vibrate(VibrationEffect.createOneShot(10, VibrationEffect.DEFAULT_AMPLITUDE))
+                } else {
+                    @Suppress("DEPRECATION")
+                    val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        vibrator.vibrate(VibrationEffect.createOneShot(10, VibrationEffect.DEFAULT_AMPLITUDE))
+                    } else {
+                        @Suppress("DEPRECATION")
+                        vibrator.vibrate(10)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Haptic feedback failed", e)
+            }
+        }
         
         // GitHub contribution colors matching the reference image
         private val LEVEL_COLORS = arrayOf(
@@ -36,6 +62,21 @@ class GitHubContributionsWidget : AppWidgetProvider() {
         // Medium: 8dp cell + 2dp margin = 10dp per cell, 7 rows = 70dp min
         // Large: 12dp cell + 3dp margin = 15dp per cell, 7 rows = 105dp min
         private data class CellConfig(val layoutId: Int, val cellSize: Int, val minHeight: Int)
+    }
+
+    override fun onReceive(context: Context, intent: Intent) {
+        super.onReceive(context, intent)
+        
+        if (intent.action == ACTION_WIDGET_TAP) {
+            // Perform haptic feedback when widget is tapped
+            performHapticFeedback(context)
+            
+            // Launch the app
+            val launchIntent = Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+            context.startActivity(launchIntent)
+        }
     }
 
     override fun onUpdate(
@@ -74,10 +115,12 @@ class GitHubContributionsWidget : AppWidgetProvider() {
     ) {
         val views = RemoteViews(context.packageName, R.layout.github_contributions_widget)
         
-        // Set up click intent to open the app
-        val intent = Intent(context, MainActivity::class.java)
-        val pendingIntent = PendingIntent.getActivity(
-            context, 0, intent,
+        // Set up click intent with haptic feedback
+        val tapIntent = Intent(context, GitHubContributionsWidget::class.java).apply {
+            action = ACTION_WIDGET_TAP
+        }
+        val pendingIntent = PendingIntent.getBroadcast(
+            context, 0, tapIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         views.setOnClickPendingIntent(R.id.widget_container, pendingIntent)
