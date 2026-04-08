@@ -4,6 +4,7 @@ import '../models/contribution.dart';
 import '../services/github_service.dart';
 import '../services/widget_service.dart';
 import '../widgets/contribution_graph.dart';
+import '../widgets/shimmer_skeleton.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -18,6 +19,7 @@ class _HomeScreenState extends State<HomeScreen> {
   
   bool _isLoading = false;
   bool _isConfigured = false;
+  bool _isInitialLoad = true;
   bool _obscureToken = true;
   String? _errorMessage;
   ContributionData? _contributionData;
@@ -49,12 +51,17 @@ class _HomeScreenState extends State<HomeScreen> {
         _avatarUrl = avatarUrl;
         _usernameController.text = username ?? '';
         
+        // Mark as configured to show shimmer
+        setState(() {
+          _isConfigured = true;
+        });
+        
         // Try to load cached data first
         final cachedData = await GitHubService.getCachedData();
         if (cachedData != null) {
           setState(() {
             _contributionData = cachedData;
-            _isConfigured = true;
+            _isInitialLoad = false;
           });
         }
         
@@ -64,7 +71,10 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (e) {
       setState(() => _errorMessage = e.toString());
     } finally {
-      setState(() => _isLoading = false);
+      setState(() {
+        _isLoading = false;
+        _isInitialLoad = false;
+      });
     }
   }
 
@@ -118,6 +128,12 @@ class _HomeScreenState extends State<HomeScreen> {
       await GitHubService.saveCredentials(username, token);
       _currentUsername = username;
       _tokenController.clear();
+
+      // Mark as configured to show shimmer while fetching
+      setState(() {
+        _isConfigured = true;
+        _contributionData = null; // Clear any old data to show shimmer
+      });
 
       // Fetch contributions
       await _fetchContributions();
@@ -204,6 +220,11 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             if (!_isConfigured) ...[
               _buildSetupCard(),
+            ] else if (_isLoading && _contributionData == null) ...[
+              // Show shimmer skeleton during initial load
+              const LoadingSkeleton(),
+              const SizedBox(height: 16),
+              _buildWidgetInstructions(),
             ] else ...[
               _buildUserCard(),
               const SizedBox(height: 16),
