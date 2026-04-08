@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/contribution.dart';
 
 /// GitHub contribution colors (dark theme)
@@ -254,14 +255,19 @@ class ContributionGraph extends StatelessWidget {
 
     return Padding(
       padding: EdgeInsets.only(bottom: cellSpacing),
-      child: Tooltip(
-        message: '${day.contributionCount} contributions on ${_formatDate(day.date)}',
-        child: Container(
-          width: cellSize,
-          height: cellSize,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(borderRadius),
+      child: GestureDetector(
+        onTap: () {
+          HapticFeedback.lightImpact();
+        },
+        child: Tooltip(
+          message: '${day.contributionCount} contributions on ${_formatDate(day.date)}',
+          child: Container(
+            width: cellSize,
+            height: cellSize,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(borderRadius),
+            ),
           ),
         ),
       ),
