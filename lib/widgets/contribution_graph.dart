@@ -32,7 +32,7 @@ class GitHubColors {
 }
 
 /// A widget that displays the GitHub contribution graph
-class ContributionGraph extends StatelessWidget {
+class ContributionGraph extends StatefulWidget {
   final ContributionData? data;
   final int weeksToShow;
   final double cellSize;
@@ -53,12 +53,26 @@ class ContributionGraph extends StatelessWidget {
   });
 
   @override
+  State<ContributionGraph> createState() => _ContributionGraphState();
+}
+
+class _ContributionGraphState extends State<ContributionGraph> {
+  ContributionDay? _selectedDay;
+
+  void _onCellTap(ContributionDay day) {
+    HapticFeedback.lightImpact();
+    setState(() {
+      _selectedDay = _selectedDay == day ? null : day;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (data == null) {
+    if (widget.data == null) {
       return _buildEmptyGraph();
     }
 
-    final weeks = data!.getLastWeeks(weeksToShow);
+    final weeks = widget.data!.getLastWeeks(widget.weeksToShow);
     
     return Container(
       padding: const EdgeInsets.all(16),
@@ -71,14 +85,14 @@ class ContributionGraph extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (showMonthLabels) ...[
+          if (widget.showMonthLabels) ...[
             _buildMonthLabels(weeks),
             const SizedBox(height: 4),
           ],
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (showDayLabels) ...[
+              if (widget.showDayLabels) ...[
                 _buildDayLabels(),
                 const SizedBox(width: 4),
               ],
@@ -87,8 +101,65 @@ class ContributionGraph extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
+          // Show selected day details
+          _buildSelectedDayInfo(),
+          const SizedBox(height: 8),
           _buildLegend(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSelectedDayInfo() {
+    if (_selectedDay == null) {
+      return const SizedBox(
+        height: 20,
+        child: Center(
+          child: Text(
+            'Tap a cell to see details',
+            style: TextStyle(
+              color: GitHubColors.text,
+              fontSize: 11,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ),
+      );
+    }
+
+    final count = _selectedDay!.contributionCount;
+    final date = _selectedDay!.date;
+    final formattedDate = _formatDate(date);
+    final contributionText = count == 1 ? 'contribution' : 'contributions';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFF21262d),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: GitHubColors.border),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 12,
+            height: 12,
+            decoration: BoxDecoration(
+              color: GitHubColors.getColorForLevel(_selectedDay!.contributionLevel),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '$count $contributionText on $formattedDate',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         ],
       ),
     );
@@ -132,12 +203,12 @@ class ContributionGraph extends StatelessWidget {
       height: 15,
       child: Row(
         children: [
-          if (showDayLabels) SizedBox(width: 28),
+          if (widget.showDayLabels) SizedBox(width: 28),
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final totalWidth = constraints.maxWidth;
-                final weekWidth = cellSize + cellSpacing;
+                final weekWidth = widget.cellSize + widget.cellSpacing;
                 
                 return Stack(
                   children: List.generate(months.length, (index) {
@@ -168,15 +239,15 @@ class ContributionGraph extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        SizedBox(height: cellSize + cellSpacing), // Mon (skip)
+        SizedBox(height: widget.cellSize + widget.cellSpacing), // Mon (skip)
         _buildDayLabel(''), // Tue
-        SizedBox(height: cellSize + cellSpacing),
+        SizedBox(height: widget.cellSize + widget.cellSpacing),
         _buildDayLabel('Wed'),
-        SizedBox(height: cellSize + cellSpacing),
+        SizedBox(height: widget.cellSize + widget.cellSpacing),
         _buildDayLabel(''), // Thu
-        SizedBox(height: cellSize + cellSpacing),
+        SizedBox(height: widget.cellSize + widget.cellSpacing),
         _buildDayLabel('Fri'),
-        SizedBox(height: cellSize + cellSpacing),
+        SizedBox(height: widget.cellSize + widget.cellSpacing),
         _buildDayLabel(''), // Sat
       ],
     );
@@ -184,7 +255,7 @@ class ContributionGraph extends StatelessWidget {
 
   Widget _buildDayLabel(String label) {
     return SizedBox(
-      height: cellSize,
+      height: widget.cellSize,
       width: 24,
       child: Text(
         label,
@@ -220,7 +291,7 @@ class ContributionGraph extends StatelessWidget {
     }
 
     return Padding(
-      padding: EdgeInsets.only(right: cellSpacing),
+      padding: EdgeInsets.only(right: widget.cellSpacing),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: days.map((day) => _buildCell(day)).toList(),
@@ -232,8 +303,8 @@ class ContributionGraph extends StatelessWidget {
     // Don't show future days - make them transparent/invisible
     if (day == null) {
       return Padding(
-        padding: EdgeInsets.only(bottom: cellSpacing),
-        child: SizedBox(width: cellSize, height: cellSize),
+        padding: EdgeInsets.only(bottom: widget.cellSpacing),
+        child: SizedBox(width: widget.cellSize, height: widget.cellSize),
       );
     }
     
@@ -245,29 +316,38 @@ class ContributionGraph extends StatelessWidget {
     if (dayDate.isAfter(today)) {
       // Future day - show empty/transparent
       return Padding(
-        padding: EdgeInsets.only(bottom: cellSpacing),
-        child: SizedBox(width: cellSize, height: cellSize),
+        padding: EdgeInsets.only(bottom: widget.cellSpacing),
+        child: SizedBox(width: widget.cellSize, height: widget.cellSize),
       );
     }
     
     final level = day.contributionLevel;
     final color = GitHubColors.getColorForLevel(level);
+    final isSelected = _selectedDay == day;
 
     return Padding(
-      padding: EdgeInsets.only(bottom: cellSpacing),
+      padding: EdgeInsets.only(bottom: widget.cellSpacing),
       child: GestureDetector(
-        onTap: () {
-          HapticFeedback.lightImpact();
-        },
-        child: Tooltip(
-          message: '${day.contributionCount} contributions on ${_formatDate(day.date)}',
-          child: Container(
-            width: cellSize,
-            height: cellSize,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(borderRadius),
-            ),
+        onTap: () => _onCellTap(day),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          width: widget.cellSize,
+          height: widget.cellSize,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(widget.borderRadius),
+            border: isSelected
+                ? Border.all(color: Colors.white, width: 1.5)
+                : null,
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: color.withOpacity(0.6),
+                      blurRadius: 4,
+                      spreadRadius: 1,
+                    ),
+                  ]
+                : null,
           ),
         ),
       ),
@@ -290,11 +370,11 @@ class ContributionGraph extends StatelessWidget {
           return Padding(
             padding: const EdgeInsets.only(left: 2),
             child: Container(
-              width: cellSize,
-              height: cellSize,
+              width: widget.cellSize,
+              height: widget.cellSize,
               decoration: BoxDecoration(
                 color: GitHubColors.getColorForLevel(index),
-                borderRadius: BorderRadius.circular(borderRadius),
+                borderRadius: BorderRadius.circular(widget.borderRadius),
               ),
             ),
           );
