@@ -33,7 +33,7 @@ A beautiful Android home screen widget that displays your GitHub contribution gr
 
 ```bash
 # Clone the repository
-git clone https://github.com/jerome-wilson/git-graph.git
+git clone https://github.com/gitgraph-app/git-graph.git
 cd git-graph
 
 # Install Flutter dependencies
