@@ -379,6 +379,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildUserCard() {
+    final streak = _contributionData?.currentStreak ?? 0;
+    
     return Card(
       color: const Color(0xFF161b22),
       shape: RoundedRectangleBorder(
@@ -418,11 +420,33 @@ class _HomeScreenState extends State<HomeScreen> {
                       color: Colors.white,
                     ),
                   ),
-                  if (_contributionData != null)
+                  if (_contributionData != null) ...[
                     Text(
                       '${_contributionData!.totalContributions} contributions in the last year',
                       style: const TextStyle(color: Color(0xFF8b949e)),
                     ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(
+                          streak > 0 ? Icons.local_fire_department : Icons.local_fire_department_outlined,
+                          size: 16,
+                          color: streak > 0 ? const Color(0xFFf97316) : const Color(0xFF8b949e),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          streak > 0 
+                              ? '$streak day${streak == 1 ? '' : 's'} streak'
+                              : 'No current streak',
+                          style: TextStyle(
+                            color: streak > 0 ? const Color(0xFFf97316) : const Color(0xFF8b949e),
+                            fontSize: 13,
+                            fontWeight: streak > 0 ? FontWeight.w500 : FontWeight.normal,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
