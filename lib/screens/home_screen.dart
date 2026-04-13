@@ -190,6 +190,23 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _onPullToRefresh() async {
+    if (!_isConfigured || _isLoading) return;
+    
+    HapticFeedback.mediumImpact();
+    await _fetchContributions();
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Contributions refreshed!'),
+          backgroundColor: Color(0xFF238636),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -213,30 +230,36 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (!_isConfigured) ...[
-              _buildSetupCard(),
-            ] else if (_isLoading && _contributionData == null) ...[
-              // Show shimmer skeleton during initial load
-              const LoadingSkeleton(),
-              const SizedBox(height: 16),
-              _buildWidgetInstructions(),
-            ] else ...[
-              _buildUserCard(),
-              const SizedBox(height: 16),
-              _buildContributionCard(),
-              const SizedBox(height: 16),
-              _buildWidgetInstructions(),
+      body: RefreshIndicator(
+        onRefresh: _onPullToRefresh,
+        color: const Color(0xFF238636),
+        backgroundColor: const Color(0xFF161b22),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (!_isConfigured) ...[
+                _buildSetupCard(),
+              ] else if (_isLoading && _contributionData == null) ...[
+                // Show shimmer skeleton during initial load
+                const LoadingSkeleton(),
+                const SizedBox(height: 16),
+                _buildWidgetInstructions(),
+              ] else ...[
+                _buildUserCard(),
+                const SizedBox(height: 16),
+                _buildContributionCard(),
+                const SizedBox(height: 16),
+                _buildWidgetInstructions(),
+              ],
+              if (_errorMessage != null) ...[
+                const SizedBox(height: 16),
+                _buildErrorCard(),
+              ],
             ],
-            if (_errorMessage != null) ...[
-              const SizedBox(height: 16),
-              _buildErrorCard(),
-            ],
-          ],
+          ),
         ),
       ),
     );
