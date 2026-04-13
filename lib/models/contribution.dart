@@ -182,4 +182,57 @@ class ContributionData {
 
     return streak;
   }
+
+  /// Calculate the longest contribution streak in the data
+  int get longestStreak {
+    final days = allDays;
+    if (days.isEmpty) return 0;
+
+    // Sort days by date ascending (oldest first)
+    final sortedDays = List<ContributionDay>.from(days)
+      ..sort((a, b) => a.date.compareTo(b.date));
+
+    // Get today's date (without time)
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    int longestStreak = 0;
+    int currentStreak = 0;
+    DateTime? lastDate;
+
+    for (final day in sortedDays) {
+      final dayDate = DateTime(day.date.year, day.date.month, day.date.day);
+
+      // Skip future days
+      if (dayDate.isAfter(today)) continue;
+
+      if (day.contributionCount > 0) {
+        if (lastDate == null) {
+          // First contribution day
+          currentStreak = 1;
+        } else {
+          final difference = dayDate.difference(lastDate).inDays;
+          if (difference == 1) {
+            // Consecutive day
+            currentStreak++;
+          } else if (difference > 1) {
+            // Gap in contributions, start new streak
+            currentStreak = 1;
+          }
+          // difference == 0 means same day (shouldn't happen with sorted unique days)
+        }
+        lastDate = dayDate;
+        
+        if (currentStreak > longestStreak) {
+          longestStreak = currentStreak;
+        }
+      } else {
+        // No contribution, reset streak
+        currentStreak = 0;
+        lastDate = dayDate;
+      }
+    }
+
+    return longestStreak;
+  }
 }
