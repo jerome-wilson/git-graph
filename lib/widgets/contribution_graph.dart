@@ -2,31 +2,78 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/contribution.dart';
 
+/// Color theme options for the contribution graph
+enum ColorTheme {
+  green,
+  blue,
+  yellow,
+}
+
 /// GitHub contribution colors (dark theme)
 class GitHubColors {
   static const Color background = Color(0xFF161b22);
   static const Color level0 = Color(0xFF21262d); // No contributions (visible gray)
-  static const Color level1 = Color(0xFF0e4429); // First quartile
-  static const Color level2 = Color(0xFF006d32); // Second quartile
-  static const Color level3 = Color(0xFF26a641); // Third quartile
-  static const Color level4 = Color(0xFF39d353); // Fourth quartile
   static const Color border = Color(0xFF30363d);
   static const Color text = Color(0xFF8b949e);
 
-  static Color getColorForLevel(int level) {
-    switch (level) {
-      case 0:
-        return level0;
-      case 1:
-        return level1;
-      case 2:
-        return level2;
-      case 3:
-        return level3;
-      case 4:
-        return level4;
-      default:
-        return level0;
+  // Green theme (default GitHub)
+  static const Color greenLevel1 = Color(0xFF0e4429);
+  static const Color greenLevel2 = Color(0xFF006d32);
+  static const Color greenLevel3 = Color(0xFF26a641);
+  static const Color greenLevel4 = Color(0xFF39d353);
+
+  // Blue theme
+  static const Color blueLevel1 = Color(0xFF1e3a5f);
+  static const Color blueLevel2 = Color(0xFF3b6ea5);
+  static const Color blueLevel3 = Color(0xFF6b9bd1);
+  static const Color blueLevel4 = Color(0xFFa8c8e8);
+
+  // Yellow/Orange theme
+  static const Color yellowLevel1 = Color(0xFF5c3d0e);
+  static const Color yellowLevel2 = Color(0xFF8b5a1b);
+  static const Color yellowLevel3 = Color(0xFFd4a03a);
+  static const Color yellowLevel4 = Color(0xFFf7c948);
+
+  static Color getColorForLevel(int level, {ColorTheme theme = ColorTheme.green}) {
+    if (level == 0) return level0;
+    
+    switch (theme) {
+      case ColorTheme.green:
+        switch (level) {
+          case 1: return greenLevel1;
+          case 2: return greenLevel2;
+          case 3: return greenLevel3;
+          case 4: return greenLevel4;
+          default: return level0;
+        }
+      case ColorTheme.blue:
+        switch (level) {
+          case 1: return blueLevel1;
+          case 2: return blueLevel2;
+          case 3: return blueLevel3;
+          case 4: return blueLevel4;
+          default: return level0;
+        }
+      case ColorTheme.yellow:
+        switch (level) {
+          case 1: return yellowLevel1;
+          case 2: return yellowLevel2;
+          case 3: return yellowLevel3;
+          case 4: return yellowLevel4;
+          default: return level0;
+        }
+    }
+  }
+
+  /// Get the primary color for a theme (level 4 - brightest)
+  static Color getPrimaryColorForTheme(ColorTheme theme) {
+    switch (theme) {
+      case ColorTheme.green:
+        return greenLevel4;
+      case ColorTheme.blue:
+        return blueLevel4;
+      case ColorTheme.yellow:
+        return yellowLevel4;
     }
   }
 }
@@ -40,6 +87,7 @@ class ContributionGraph extends StatefulWidget {
   final double borderRadius;
   final bool showMonthLabels;
   final bool showDayLabels;
+  final ColorTheme colorTheme;
 
   const ContributionGraph({
     super.key,
@@ -50,6 +98,7 @@ class ContributionGraph extends StatefulWidget {
     this.borderRadius = 2,
     this.showMonthLabels = true,
     this.showDayLabels = true,
+    this.colorTheme = ColorTheme.green,
   });
 
   @override
@@ -147,7 +196,7 @@ class _ContributionGraphState extends State<ContributionGraph> {
             width: 12,
             height: 12,
             decoration: BoxDecoration(
-              color: GitHubColors.getColorForLevel(_selectedDay!.contributionLevel),
+              color: GitHubColors.getColorForLevel(_selectedDay!.contributionLevel, theme: widget.colorTheme),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -322,7 +371,7 @@ class _ContributionGraphState extends State<ContributionGraph> {
     }
     
     final level = day.contributionLevel;
-    final color = GitHubColors.getColorForLevel(level);
+    final color = GitHubColors.getColorForLevel(level, theme: widget.colorTheme);
     final isSelected = _selectedDay == day;
 
     return Padding(
@@ -373,7 +422,7 @@ class _ContributionGraphState extends State<ContributionGraph> {
               width: widget.cellSize,
               height: widget.cellSize,
               decoration: BoxDecoration(
-                color: GitHubColors.getColorForLevel(index),
+                color: GitHubColors.getColorForLevel(index, theme: widget.colorTheme),
                 borderRadius: BorderRadius.circular(widget.borderRadius),
               ),
             ),

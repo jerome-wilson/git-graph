@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/contribution.dart';
 import '../services/github_service.dart';
 import '../services/widget_service.dart';
@@ -25,11 +26,30 @@ class _HomeScreenState extends State<HomeScreen> {
   ContributionData? _contributionData;
   String? _currentUsername;
   String? _avatarUrl;
+  ColorTheme _colorTheme = ColorTheme.green;
 
   @override
   void initState() {
     super.initState();
+    _loadColorTheme();
     _loadSavedData();
+  }
+
+  Future<void> _loadColorTheme() async {
+    final prefs = await SharedPreferences.getInstance();
+    final themeIndex = prefs.getInt('colorTheme') ?? 0;
+    setState(() {
+      _colorTheme = ColorTheme.values[themeIndex.clamp(0, ColorTheme.values.length - 1)];
+    });
+  }
+
+  Future<void> _saveColorTheme(ColorTheme theme) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('colorTheme', theme.index);
+    HapticFeedback.lightImpact();
+    setState(() {
+      _colorTheme = theme;
+    });
   }
 
   @override
@@ -538,6 +558,7 @@ class _HomeScreenState extends State<HomeScreen> {
               cellSize: 10,
               cellSpacing: 3,
               borderRadius: 2,
+              colorTheme: _colorTheme,
             ),
             if (_contributionData != null) ...[
               const SizedBox(height: 12),
@@ -549,8 +570,67 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ],
+            const SizedBox(height: 16),
+            _buildThemePicker(),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildThemePicker() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Text(
+          'Theme:',
+          style: TextStyle(
+            color: Color(0xFF8b949e),
+            fontSize: 12,
+          ),
+        ),
+        const SizedBox(width: 12),
+        _buildThemeCircle(ColorTheme.green, GitHubColors.greenLevel4),
+        const SizedBox(width: 8),
+        _buildThemeCircle(ColorTheme.blue, GitHubColors.blueLevel4),
+        const SizedBox(width: 8),
+        _buildThemeCircle(ColorTheme.yellow, GitHubColors.yellowLevel4),
+      ],
+    );
+  }
+
+  Widget _buildThemeCircle(ColorTheme theme, Color color) {
+    final isSelected = _colorTheme == theme;
+    return GestureDetector(
+      onTap: () => _saveColorTheme(theme),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: 28,
+        height: 28,
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: isSelected ? Colors.white : Colors.transparent,
+            width: 2,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: color.withOpacity(0.5),
+                    blurRadius: 8,
+                    spreadRadius: 2,
+                  ),
+                ]
+              : null,
+        ),
+        child: isSelected
+            ? const Icon(
+                Icons.check,
+                color: Colors.white,
+                size: 16,
+              )
+            : null,
       ),
     );
   }
