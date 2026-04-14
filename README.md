@@ -4,11 +4,20 @@ A beautiful Android home screen widget that displays your GitHub contribution gr
 
 ## Features
 
+### Widget Features
 - 📊 **Real GitHub Data** - Fetches your actual contribution data from GitHub
 - 🎨 **GitHub Dark Theme** - Matches GitHub's dark mode color scheme
 - 📱 **Resizable Widget** - Adjust the widget size to show more or fewer weeks
 - 🔄 **Auto Updates** - Widget updates hourly to show latest contributions
 - 🔒 **Secure** - Your token is stored locally on your device only
+
+### App Features
+- 🔥 **Current Streak Counter** - Track your consecutive days of contributions
+- 🏆 **Longest Streak Display** - See your best streak record
+- 👆 **Tap for Details** - Tap any cell to see contribution count and date
+- ↓ **Pull to Refresh** - Swipe down to refresh your contribution data
+- 🎨 **Color Themes** - Choose from Green, Blue, or Yellow color schemes
+- 🌈 **Theme-Aware Colors** - Streak icons and text match your selected theme
 
 ## Screenshots
 
@@ -16,12 +25,22 @@ A beautiful Android home screen widget that displays your GitHub contribution gr
 |-----------|----------------------|---------------|
 | ![Setup](screenshots/app_setup.jpeg) | ![Widget](screenshots/widget_on_home_screen.jpeg) | ![Adding Widget](screenshots/gitgraph-widget-drag.jpeg) |
 
+## Color Themes
+
+Personalize your contribution graph with three beautiful color themes:
+
+| Theme | Graph Colors | Current Streak | Longest Streak |
+|-------|-------------|----------------|----------------|
+| 🟢 **Green** | GitHub default green | Orange 🔥 | Gold 🏆 |
+| 🔵 **Blue** | Slate/steel blue | Dark Blue 🔥 | Light Blue 🏆 |
+| 🟡 **Yellow** | Warm amber/gold | Dark Amber 🔥 | Bright Yellow 🏆 |
+
 ## Installation
 
 ### Option 1: Download APK (Recommended)
 
 1. Go to the [Releases](../../releases) page
-2. Download the latest `app-release.apk`
+2. Download the latest `gitgraph-v1.2.1.apk`
 3. On your Android phone:
    - Enable "Install from unknown sources" in Settings
    - Open the downloaded APK file
@@ -69,6 +88,21 @@ flutter build apk --release
 4. Drag the widget to your home screen
 5. Resize as needed
 
+## App Usage
+
+### Viewing Contribution Details
+- **Tap any cell** in the contribution graph to see the exact contribution count and date
+
+### Refreshing Data
+- **Pull down** on the main screen to refresh your contribution data
+- Or tap the **refresh icon** in the app bar
+
+### Changing Color Theme
+1. Scroll to the contribution graph
+2. Below the graph, tap on any colored circle (🟢 🔵 🟡)
+3. The graph and streak colors will update immediately
+4. Your preference is saved automatically
+
 ## Widget Customization
 
 The widget automatically adjusts to show more weeks when you make it wider. Try different sizes to find what works best for your home screen layout.
@@ -91,6 +125,18 @@ The widget automatically adjusts to show more weeks when you make it wider. Try 
 - **Flutter** - Cross-platform UI framework
 - **Kotlin** - Native Android widget implementation
 - **GitHub GraphQL API** - Fetching contribution data
+
+## Version History
+
+| Version | Features |
+|---------|----------|
+| v1.2.1 | Theme-aware streak colors |
+| v1.2.0 | Color theme options (Green, Blue, Yellow) |
+| v1.1.7 | Pull to refresh |
+| v1.1.6 | Longest streak display |
+| v1.1.5 | Current streak counter |
+| v1.1.4 | Tap cells for contribution details |
+| v1.1.0 | Initial release with widget support |
 
 ## Contributing
 
