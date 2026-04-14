@@ -76,6 +76,36 @@ class GitHubColors {
         return yellowLevel4;
     }
   }
+
+  // Default streak colors (for green theme)
+  static const Color defaultCurrentStreakColor = Color(0xFFf97316); // Orange
+  static const Color defaultLongestStreakColor = Color(0xFFfbbf24); // Gold
+
+  /// Get the current streak color based on theme
+  /// Current streak uses a darker shade (level 2)
+  static Color getCurrentStreakColor(ColorTheme theme) {
+    switch (theme) {
+      case ColorTheme.green:
+        return defaultCurrentStreakColor; // Orange (unchanged)
+      case ColorTheme.blue:
+        return blueLevel2; // Dark blue
+      case ColorTheme.yellow:
+        return yellowLevel2; // Dark amber
+    }
+  }
+
+  /// Get the longest streak color based on theme
+  /// Longest streak uses the brightest shade (level 4)
+  static Color getLongestStreakColor(ColorTheme theme) {
+    switch (theme) {
+      case ColorTheme.green:
+        return defaultLongestStreakColor; // Gold (unchanged)
+      case ColorTheme.blue:
+        return blueLevel4; // Light blue
+      case ColorTheme.yellow:
+        return yellowLevel4; // Bright yellow
+    }
+  }
 }
 
 /// A widget that displays the GitHub contribution graph

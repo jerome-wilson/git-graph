@@ -425,6 +425,10 @@ class _HomeScreenState extends State<HomeScreen> {
     final currentStreak = _contributionData?.currentStreak ?? 0;
     final longestStreak = _contributionData?.longestStreak ?? 0;
     
+    // Get theme-aware streak colors
+    final currentStreakColor = GitHubColors.getCurrentStreakColor(_colorTheme);
+    final longestStreakColor = GitHubColors.getLongestStreakColor(_colorTheme);
+    
     return Card(
       color: const Color(0xFF161b22),
       shape: RoundedRectangleBorder(
@@ -476,7 +480,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Icon(
                           currentStreak > 0 ? Icons.local_fire_department : Icons.local_fire_department_outlined,
                           size: 16,
-                          color: currentStreak > 0 ? const Color(0xFFf97316) : const Color(0xFF8b949e),
+                          color: currentStreak > 0 ? currentStreakColor : const Color(0xFF8b949e),
                         ),
                         const SizedBox(width: 4),
                         Text(
@@ -484,7 +488,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ? '$currentStreak day${currentStreak == 1 ? '' : 's'}'
                               : 'No streak',
                           style: TextStyle(
-                            color: currentStreak > 0 ? const Color(0xFFf97316) : const Color(0xFF8b949e),
+                            color: currentStreak > 0 ? currentStreakColor : const Color(0xFF8b949e),
                             fontSize: 12,
                             fontWeight: currentStreak > 0 ? FontWeight.w500 : FontWeight.normal,
                           ),
@@ -494,7 +498,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Icon(
                           Icons.emoji_events,
                           size: 16,
-                          color: longestStreak > 0 ? const Color(0xFFfbbf24) : const Color(0xFF8b949e),
+                          color: longestStreak > 0 ? longestStreakColor : const Color(0xFF8b949e),
                         ),
                         const SizedBox(width: 4),
                         Text(
@@ -502,7 +506,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ? '$longestStreak day${longestStreak == 1 ? '' : 's'} best'
                               : 'No best',
                           style: TextStyle(
-                            color: longestStreak > 0 ? const Color(0xFFfbbf24) : const Color(0xFF8b949e),
+                            color: longestStreak > 0 ? longestStreakColor : const Color(0xFF8b949e),
                             fontSize: 12,
                             fontWeight: longestStreak > 0 ? FontWeight.w500 : FontWeight.normal,
                           ),
